@@ -1,0 +1,15 @@
+# Blanket-ignore everything by default, then allowlist the three dirs.
+# This is safer than a denylist: any new file Claude Code adds is
+# ignored unless explicitly unignored below.
+
+*
+
+# Allowlist
+!.gitignore
+!.gitmodules
+!agents/
+!agents/**
+!skills/
+!skills/**
+!commands/
+!commands/**
