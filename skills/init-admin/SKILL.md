@@ -1,72 +1,63 @@
 ---
 name: init-admin
-description: Scaffold or audit a Python-based `admin` task runner with inline TUI menu for the current project. Detects project type, generates commands, and sets up log capture. Also audits existing admin scripts for missing standard features.
+description: Scaffold, regenerate, or audit a Python-based `admin` task runner for the current project. Reads/writes an `admin.toml` manifest and generates a self-contained `./admin` script from composable archetypes. Also audits existing scripts for drift.
 ---
 
-# /init-admin — Scaffold or Audit Project Admin Task Runner
+# /init-admin — Manifest-Driven Admin Task Runner
 
-Generate or audit a per-project `admin` script that imports from `admin_lib` (~/.admin/admin_lib/). Uses the `~/.admin/init-admin` bootstrap tool for generation and audit, then handles Claude Code UX (confirm, post-generation steps).
+**v2 flow (manifest-driven).** The generator writes two files per project:
+
+- **`admin.toml`** — short (~5–25 line) human-edited manifest declaring archetypes, URLs, and any project-specific commands. Committed. **The source of truth.**
+- **`./admin`** — self-contained, bundled Python script generated from `admin.toml` + archetype catalog. Also committed. Should not be hand-edited; regenerate instead.
+
+The generator tool is `~/.admin/init-admin-v2` (installed by the `admin-project-tool` repo's `install.sh`). It has three modes:
+
+- **Bootstrap** (no args): detect project stack → write starter `admin.toml` → generate `./admin`
+- **`--regenerate`**: reload `admin.toml` and rewrite `./admin` (idempotent; normal loop for adding/changing commands)
+- **`--audit`**: diff the on-disk `./admin` against what would be regenerated; exit 0 on clean, 2 on drift
 
 ## Instructions
 
-Follow these phases exactly. Do NOT skip phases or auto-confirm on behalf of the user.
+Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 
-### Phase 1: Detect and Preview
+### Phase 1: Detect current state
 
-Run the init-admin tool in a dry-run fashion to show the user what will happen:
+1. Check `~/.admin/init-admin-v2` exists. If not, tell the user to run `install.sh` from `~/Projects/admin-project-tool` first.
+2. Check the project for `admin.toml` and `./admin`:
+   - **Neither exists** → bootstrap flow (Phase 2a)
+   - **Both exist** → regenerate / audit flow (Phase 2b)
+   - **Only `./admin` exists, no `admin.toml`** → this is a v1 (pre-manifest) project. Offer `--from-existing` migration (once that flag ships — tracked as an open issue). Until then, treat as bootstrap and warn the user the existing `./admin` will be overwritten.
+   - **Only `admin.toml` exists, no `./admin`** → run `--regenerate`
 
-1. Check if `~/.admin/init-admin` exists. If not, tell the user to run `install.sh` from the admin-project-tool repo first.
-2. Check if `./admin` already exists:
-   - **If yes**: Run `~/.admin/init-admin --audit` to show the audit report. Also check if the admin script imports admin_lib at runtime (look for `sys.path.insert` pointing to `~/.admin` or `from admin_lib` without a bundled `# === admin_lib` header). If it does, **this is a critical problem** — the admin script is not self-contained and will break for anyone who doesn't have admin-project-tool installed. Tell the user: "This admin script references admin_lib at runtime instead of being bundled. It needs to be re-bundled with `~/.admin/bundle ./admin` so it's self-contained." Present results and ask if the user wants to regenerate (will require `--force`), re-bundle, make surgical fixes, or leave it.
-   - **If no**: Detect the project type by checking filesystem markers:
-     - `.xcodeproj` or `.xcworkspace` → apple
-     - `Dockerfile` or `docker-compose.yml`/`compose.yml` → server
-     - Otherwise → basic
+### Phase 2a: Bootstrap (no admin.toml)
 
-### Phase 2: Confirm with User
+1. Run `~/.admin/init-admin-v2 .` — this detects the stack via `~/.admin/detectors/`, writes a starter `admin.toml`, and generates `./admin`.
+2. Show the user the generated `admin.toml` and the detector that matched.
+3. Point them at any TODO shell strings (the `simple` fallback archetype uses placeholder `echo 'TODO: …'` commands that need to be filled in).
 
-Present:
-1. Detected project type (or `--type` override if user specified)
-2. Inferred project name (from directory basename)
-3. Template that will be used
-4. Key variables that will be filled in
+### Phase 2b: Regenerate / Audit (admin.toml exists)
 
-Ask the user to confirm or adjust before generating.
+1. Run `~/.admin/init-admin-v2 --audit .` first to check for drift.
+   - **Exit 0, clean** → nothing to do unless the user is explicitly asking for a change.
+   - **Exit 2, drift** → the on-disk `./admin` was hand-edited, or the archetype catalog / `admin_lib` has moved since the last regen. Show the user the unified diff and ask whether they want to regenerate (throwing away the hand edits) or keep the drift.
+2. To update after the user edits `admin.toml`, run `~/.admin/init-admin-v2 --regenerate .`.
 
-### Phase 3: Generate
+### Phase 3: Env var discovery (if the manifest uses `${VAR}`)
 
-Run the init-admin tool to generate:
+If `admin.toml` or any generated command references `${VAR}` placeholders, run `./admin env` to list referenced vars and their current state (set / default / UNSET required). Tell the user which env vars they need to export before commands will work.
 
-```bash
-~/.admin/init-admin [--type TYPE] [--force] .
-```
-
-- Use `--type` if the user specified a type override
-- Use `--force` if overwriting an existing admin file (user must have confirmed in Phase 2)
-
-### Phase 3b: Web URL Setup (server projects with web component)
-
-If the project has a web component (detected by `has_web_component()` in init-admin — checks for `public/`, `static/`, `index.html`, `server.js`, Express/Flask markers, etc.), the generated server template includes:
-
-- `set_urls()` call with dev/prod URL placeholders
-- `open` command for browser launching with live/down status
-
-After generation, ask the user to update the `URLS` list in `./admin` with the correct dev and production URLs for their project. The TUI home screen and `--help` output will show URL liveness status automatically.
-
-For audits: if the audit detects a web component but `set_urls` is missing, it warns. Suggest adding the URL config and `open` command.
-
-### Phase 4: Post-generation
+### Phase 4: Post-generation file setup
 
 After generation succeeds:
 
-1. **`.gitignore`** — add `tmp/` if not already present
+1. **`.gitignore`** — ensure `tmp/` is ignored (the generator creates `tmp/.gitignore` automatically, which covers this)
 2. **`.claude/skills/read-logs.md`** — create if missing (template below)
-3. **`CLAUDE.local.md`** — create or update with auto-reload instruction (see below)
-4. **Project CLAUDE.md** — if it references `admin.sh`, update to reference `admin`
+3. **`CLAUDE.local.md`** — create or update with the auto-reload instruction (see below)
+4. **Project `CLAUDE.md`** — if it references `admin.sh` or a v1 template name, update to reference `./admin` and mention `admin.toml` is the source of truth
 
-### Phase 5: Auto-Reload Documentation
+### Phase 5: Auto-reload documentation
 
-Ensure the project has a `CLAUDE.local.md` (gitignored, not committed) that instructs Claude to proactively reload after code changes:
+Ensure the project has a `CLAUDE.local.md` (gitignored, not committed) with:
 
 ```markdown
 # Local Development Workflow
@@ -80,7 +71,21 @@ Also ensure `CLAUDE.local.md` is in `.gitignore`.
 
 ### Phase 6: Commit
 
-Ask the user if they want to commit the changes.
+Ask the user if they want to commit `admin.toml` and `./admin` together. They should always be committed in the same commit so provenance (`generator_commit` SHA) stays coherent.
+
+---
+
+## Key mental-model notes
+
+- **`admin.toml` is the source of truth.** Hand-edits to `./admin` are drift. Escape hatch for project-specific Python is `[inline] file = "admin_inline.py"` in the manifest, not editing the generated script.
+- **Archetypes are composable mixins.** `archetypes = ["docker-unraid", "apple"]` is valid and produces a merged command set. Later archetype wins on conflicts; manifest `[commands]` wins over all archetypes.
+- **Env vars are runtime.** `${VAR}` and `${VAR:-default}` in manifest strings are passed through to the generated script as literals and resolved by `admin_lib.core.resolve_env()` when commands run. Never expand them at generation time.
+- **`generator_commit` is the repo SHA of `admin-project-tool`** at the time of last regeneration. The audit compares SHAs to tell the user whether the generator itself has moved since the manifest was last regenerated.
+- **Python 3.11+ required** everywhere (stdlib `tomllib`). The generated `./admin` starts with a runtime guard.
+
+## v1 projects (no `admin.toml`)
+
+These still exist until migrated. A v1 `./admin` is a bundled single file with a `# @bundled` header but no companion `admin.toml`. Don't hand-audit these — they predate v2 and will be migrated with `--from-existing` (not yet implemented; tracked as an open issue). Until then, regenerating a v1 project from scratch is the only option, which overwrites the existing script.
 
 ---
 
