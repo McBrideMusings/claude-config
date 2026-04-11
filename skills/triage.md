@@ -9,7 +9,7 @@ Fetch issues from a GitHub URL, group related ones, score by priority, present c
 
 ## Input
 
-The user passes a GitHub URL as an argument. Supported formats:
+The user may pass a GitHub URL as an argument. Supported formats:
 
 | URL pattern | What to fetch |
 |-------------|---------------|
@@ -20,14 +20,21 @@ The user passes a GitHub URL as an argument. Supported formats:
 | `github.com/owner/repo` | All open issues |
 | `github.com/orgs/owner/projects/N` | Items from project board N |
 
-If no URL is provided, ask the user for one.
+**If no URL is provided**, default to the current working directory's GitHub remote:
+- Run `gh repo view --json nameWithOwner -q .nameWithOwner` to get `owner/repo`
+- If that fails (not a repo, or no GitHub remote), ask the user for a URL
+- Fetch all open issues from that repo
 
 ## Procedure
 
-### 1. Parse the URL
+### 1. Determine the target repo and filters
 
-Extract `owner`, `repo`, and any filter parameters from the URL.
+**If no argument was passed**, detect the current repo:
+- Run `gh repo view --json nameWithOwner -q .nameWithOwner` to get `owner/repo`
+- If that fails, ask the user for a GitHub URL and stop
+- Default to fetching all open issues (no milestone/label filter)
 
+**If a URL was passed**, parse it:
 - Strip `https://` prefix if present
 - Split the path to get `owner/repo`
 - Detect the URL type from the path and query string
