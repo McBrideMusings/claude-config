@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Fetch and triage GitHub issues from a milestone, label filter, or repo URL. Groups related issues, identifies priority, and implements chosen work via worktree.
+description: Fetch and triage GitHub issues from a milestone, label filter, or repo URL. Groups related issues, identifies priority, and implements chosen work via worktree. Use when the user wants to work through GitHub issues, pare down the issue list, fix related bugs, or start work from an issue tracker.
 ---
 
 # Triage GitHub Issues
