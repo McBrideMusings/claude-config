@@ -16,6 +16,17 @@ The generator tool is `~/.admin/init-admin-v2` (installed by the `admin-project-
 - **`--regenerate`**: reload `admin.toml` and rewrite `./admin` (idempotent; normal loop for adding/changing commands)
 - **`--audit`**: diff the on-disk `./admin` against what would be regenerated; exit 0 on clean, 2 on drift
 
+## Critical rule: treat the generator as a black box
+
+**Do NOT read source code under `~/.admin/`, `~/Projects/admin-project-tool/`, or any detector/archetype `.py` files.** The generator is a program — run it and read its output. You are not expected to understand its internals to use it.
+
+The only files you should read are:
+- The project's `admin.toml` (the user's manifest — you'll edit this)
+- The project's generated `./admin` (only to show the user or debug a generation failure)
+- This skill file
+
+If the generator produces unexpected output or the wrong archetype match, **report the results to the user first**. Only dig into generator source code if the user explicitly asks you to investigate a bug in the generator itself.
+
 ## Instructions
 
 Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
@@ -31,8 +42,8 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 
 ### Phase 2a: Bootstrap (no admin.toml)
 
-1. Run `~/.admin/init-admin-v2 .` — this detects the stack via `~/.admin/detectors/`, writes a starter `admin.toml`, and generates `./admin`.
-2. Show the user the generated `admin.toml` and the detector that matched.
+1. Run `~/.admin/init-admin-v2 .` — it detects the stack, writes `admin.toml`, and generates `./admin`. **Do not explore the project yourself to guess the archetype — the detectors do this.**
+2. Read the generated `admin.toml` and show it to the user along with the detector match (printed in the generator's stdout).
 3. Point them at any TODO shell strings (the `simple` fallback archetype uses placeholder `echo 'TODO: …'` commands that need to be filled in).
 
 ### Phase 2b: Regenerate / Audit (admin.toml exists)
