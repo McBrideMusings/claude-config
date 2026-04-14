@@ -10,7 +10,7 @@ description: Scaffold, regenerate, or audit a Python-based `admin` task runner f
 - **`admin.toml`** — short (~5–25 line) human-edited manifest declaring archetypes, URLs, and any project-specific commands. Committed. **The source of truth.**
 - **`./admin`** — self-contained, bundled Python script generated from `admin.toml` + archetype catalog. Also committed. Should not be hand-edited; regenerate instead.
 
-The generator tool is `~/.admin/init-admin-v2` (installed by the `admin-project-tool` repo's `install.sh`). It has three modes:
+The generator tool is `~/.admin/init-admin` (installed by the `admin-project-tool` repo's `install.sh`). It has three modes:
 
 - **Bootstrap** (no args): detect project stack → write starter `admin.toml` → generate `./admin`
 - **`--regenerate`**: reload `admin.toml` and rewrite `./admin` (idempotent; normal loop for adding/changing commands)
@@ -33,7 +33,7 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 
 ### Phase 1: Detect current state
 
-1. Check `~/.admin/init-admin-v2` exists. If not, tell the user to run `install.sh` from `~/Projects/admin-project-tool` first.
+1. Check `~/.admin/init-admin` exists. If not, tell the user to run `install.sh` from `~/Projects/admin-project-tool` first.
 2. Check the project for `admin.toml` and `./admin`:
    - **Neither exists** → bootstrap flow (Phase 2a)
    - **Both exist** → regenerate / audit flow (Phase 2b)
@@ -42,16 +42,16 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 
 ### Phase 2a: Bootstrap (no admin.toml)
 
-1. Run `~/.admin/init-admin-v2 .` — it detects the stack, writes `admin.toml`, and generates `./admin`. **Do not explore the project yourself to guess the archetype — the detectors do this.**
+1. Run `~/.admin/init-admin .` — it detects the stack, writes `admin.toml`, and generates `./admin`. **Do not explore the project yourself to guess the archetype — the detectors do this.**
 2. Read the generated `admin.toml` and show it to the user along with the detector match (printed in the generator's stdout).
 3. Point them at any TODO shell strings (the `simple` fallback archetype uses placeholder `echo 'TODO: …'` commands that need to be filled in).
 
 ### Phase 2b: Regenerate / Audit (admin.toml exists)
 
-1. Run `~/.admin/init-admin-v2 --audit .` first to check for drift.
+1. Run `~/.admin/init-admin --audit .` first to check for drift.
    - **Exit 0, clean** → nothing to do unless the user is explicitly asking for a change.
    - **Exit 2, drift** → the on-disk `./admin` was hand-edited, or the archetype catalog / `admin_lib` has moved since the last regen. Show the user the unified diff and ask whether they want to regenerate (throwing away the hand edits) or keep the drift.
-2. To update after the user edits `admin.toml`, run `~/.admin/init-admin-v2 --regenerate .`.
+2. To update after the user edits `admin.toml`, run `~/.admin/init-admin --regenerate .`.
 
 ### Phase 3: Env var discovery (if the manifest uses `${VAR}`)
 
@@ -93,6 +93,54 @@ Ask the user if they want to commit `admin.toml` and `./admin` together. They sh
 - **Env vars are runtime.** `${VAR}` and `${VAR:-default}` in manifest strings are passed through to the generated script as literals and resolved by `admin_lib.core.resolve_env()` when commands run. Never expand them at generation time.
 - **`generator_commit` is the repo SHA of `admin-project-tool`** at the time of last regeneration. The audit compares SHAs to tell the user whether the generator itself has moved since the manifest was last regenerated.
 - **Python 3.11+ required** everywhere (stdlib `tomllib`). The generated `./admin` starts with a runtime guard.
+
+## File-based log tailing (`[logs]` section)
+
+The manifest supports a top-level `[logs.<target>]` section that emits a `./admin logs` command for tailing log **files** (not processes). Use this when the project writes to one or more well-known log files — whether an append-only file, a rotating file, or a file that's truncated and rewritten in place ("circular-buffer" style). It does not care what produced the file.
+
+### Manifest shape
+
+```toml
+[logs.app]
+dev  = "./tmp/app.log"                                                                  # string = local path
+prod = { path = "/var/log/app.log", host = "${APP_HOST}", user = "${APP_USER:-root}" }  # table = remote
+default_env = "dev"                                                                     # optional; else TUI picker / --env required
+
+[logs.worker]
+local = "./tmp/worker.log"                                                              # single env auto-selected; no picker
+```
+
+Rules:
+- Each env value is **either** a string (local path) **or** a table with a required `path` and optional `host` + `user`.
+- `host` present = tail remotely via `ssh [-l user] host 'tail … path'`. Missing = local file.
+- `${VAR}` / `${VAR:-default}` placeholders work anywhere (path, host, user) and resolve at run time.
+- `default_env` is optional. Omit to require `--env` when the target has multiple envs (or let the TUI pick).
+- If a manifest `[logs]` section defines `logs`, it supersedes any archetype-supplied `logs` command (e.g. `docker-unraid` has its own ssh-based `logs`). The manifest wins.
+
+### CLI
+
+```
+./admin logs                     # TUI picker over log targets
+./admin logs <target>            # follow from end, default env
+./admin logs <target> --env prod # explicit env
+./admin logs <target> --tail 500 # print last 500 lines, then follow
+./admin logs <target> --all      # print whole file, then follow
+./admin logs <target> --no-follow    # one-shot; combine with --tail or --all
+```
+
+Default behavior is **follow from end** — no history dump unless asked. Follow mode reopens the file on inode change or size shrink, so it handles both log rotation and truncation-style circular buffers. Remote tailing uses `tail -F` so the remote side handles rotation.
+
+### When to suggest adding `[logs]`
+
+- The user has one or more log files whose paths they can name.
+- They want to stream those logs from `./admin` without remembering paths or writing shell aliases.
+- They have dev vs. prod environments for the same logical log (with possibly different paths and hosts).
+
+### What `[logs]` is **not**
+
+- Not a log-aggregator, formatter, or filter. It's a file-streaming shortcut.
+- No `--since <duration>` time-based filter. Use `--tail N` to bound output.
+- Not a replacement for hooking into a live process (e.g. `docker logs -f`) — for that, an archetype shell command is still the right shape.
 
 ## v1 projects (no `admin.toml`)
 
