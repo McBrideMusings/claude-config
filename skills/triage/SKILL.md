@@ -119,12 +119,14 @@ Wait for the user to choose.
 
 After the user picks:
 
-- **Single issue**: run `wtree add --issue <number>` from inside the repo
-- **Group of issues**: use the highest-priority issue as the primary — run `wtree add --issue <primary-number>`. Note the other issue numbers; they'll go in the PR description later.
+- **Single issue**: run `wtree add <number>` from inside the repo (bare number, no `--issue` flag — `wtree add` is a smart-add that classifies positional input as PR number, issue number, branch name, or URL)
+- **Group of issues**: use the highest-priority issue as the primary — run `wtree add <primary-number>`. Note the other issue numbers; they'll go in the PR description later.
+
+**Non-interactive contexts (Claude Code, CI, etc.):** wtree prints two `Continue?` / `cd into it?` prompts that read from stdin. When stdin is not a TTY the read returns empty, which wtree treats as "yes" and proceeds — so the worktree is still created. **Do not** pass arbitrary flags like `--issue`; wtree treats unknown positional tokens as new branch names and will silently create branches like `issue` or `help`. Stick to the documented forms above.
+
+After running, parse the worktree path from the output (`Worktree: <path>`) — the `cd` inside the script doesn't persist back to Claude's shell, so subsequent commands need to use absolute paths or `cd` explicitly.
 
 Report the worktree path and branch name back to the user.
-
-`cd` into the worktree directory.
 
 ### 7. Begin implementation
 
