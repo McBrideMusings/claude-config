@@ -1,11 +1,13 @@
 ---
 name: triage
-description: Fetch and triage GitHub issues from a milestone, label filter, or repo URL. Groups related issues, identifies priority, and implements chosen work via worktree. Use when the user wants to work through GitHub issues, pare down the issue list, fix related bugs, or start work from an issue tracker.
+description: Fetch and triage GitHub issues from a milestone, label filter, or repo URL. Groups related issues, identifies priority, and implements chosen work on the current branch. Use when the user wants to work through GitHub issues, pare down the issue list, fix related bugs, or start work from an issue tracker.
 ---
 
 # Triage GitHub Issues
 
-Fetch issues from a GitHub URL, group related ones, score by priority, present choices, then set up a worktree and implement.
+Fetch issues from a GitHub URL, group related ones, score by priority, present choices, then implement on the current branch.
+
+**Do not create a worktree.** Work on the current branch unless the user explicitly asks for a worktree (e.g., "use a worktree", "wtree this", "isolate this in a worktree"). Never set one up as a default step.
 
 ## Input
 
@@ -115,20 +117,7 @@ Scope estimate heuristic: ~30-60 min per issue for bugs, ~1-2 hours per issue fo
 
 Wait for the user to choose.
 
-### 6. Set up worktree
-
-After the user picks:
-
-- **Single issue**: run `wtree add <number>` from inside the repo (bare number, no `--issue` flag — `wtree add` is a smart-add that classifies positional input as PR number, issue number, branch name, or URL)
-- **Group of issues**: use the highest-priority issue as the primary — run `wtree add <primary-number>`. Note the other issue numbers; they'll go in the PR description later.
-
-**Non-interactive contexts (Claude Code, CI, etc.):** wtree prints two `Continue?` / `cd into it?` prompts that read from stdin. When stdin is not a TTY the read returns empty, which wtree treats as "yes" and proceeds — so the worktree is still created. **Do not** pass arbitrary flags like `--issue`; wtree treats unknown positional tokens as new branch names and will silently create branches like `issue` or `help`. Stick to the documented forms above.
-
-After running, parse the worktree path from the output (`Worktree: <path>`) — the `cd` inside the script doesn't persist back to Claude's shell, so subsequent commands need to use absolute paths or `cd` explicitly.
-
-Report the worktree path and branch name back to the user.
-
-### 7. Begin implementation
+### 6. Begin implementation
 
 - Read the chosen issue(s) in full: `gh issue view <N>` for each
 - Explore the relevant areas of the codebase
@@ -139,7 +128,7 @@ When working on a group, mention all related issue numbers in commit messages (e
 
 ## Rules
 
-- Always use `wtree` for worktree creation — never run `git worktree` manually
+- Do not create worktrees unless the user explicitly requests one; if they do, use `wtree add <number>` — never run `git worktree` manually
 - Never commit automatically — ask before committing
 - If the repo is not checked out locally, stop and tell the user
 - If `gh` auth fails, suggest the user run `gh auth login`
