@@ -16,6 +16,7 @@ model=$(echo "$input" | grep -o '"display_name":"[^"]*"' | sed 's/"display_name"
 current_dir_path=$(echo "$input" | grep -o '"current_dir":"[^"]*"' | sed 's/"current_dir":"//;s/"$//')
 current_dir=$(basename "$current_dir_path")
 session_id=$(echo "$input" | grep -o '"session_id":"[^"]*"' | sed 's/"session_id":"//;s/"$//')
+ctx_pct=$(echo "$input" | grep -o '"used_percentage":[0-9.]*' | head -1 | sed 's/"used_percentage"://' | cut -d. -f1)
 
 branch=""
 if git rev-parse --git-dir >/dev/null 2>&1; then
@@ -128,6 +129,15 @@ if [ -n "$branch" ]; then
   line2="${line2}${GRAY} | ${GREEN}${branch}${RESET}"
 else
   line2="${line2}${GRAY} | ${DIM}no git repo${RESET}"
+fi
+if [ -n "$ctx_pct" ]; then
+  ctx_color="$GREEN"
+  if [ "$ctx_pct" -ge 80 ]; then
+    ctx_color="$RED"
+  elif [ "$ctx_pct" -ge 50 ]; then
+    ctx_color="$ORANGE"
+  fi
+  line2="${line2}${GRAY} | ctx ${ctx_color}${ctx_pct}%${RESET}"
 fi
 
 line3="${BLUE}${HOSTNAME}${RESET}${GRAY} | ${DIM}${session_id}${RESET}"
