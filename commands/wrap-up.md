@@ -115,21 +115,17 @@ After presenting the list, determine how to persist them:
 
 Format rules:
 - Get the current branch with `git branch --show-current`
-- Group items under a branch/feature heading, not just a flat dated list
-- Within each session block, further group related items under short subheadings (e.g. "Type Safety", "UX", "Performance") — aim for 2-5 items per group, not one giant list
-- Keep each item to one line: **Title** — one sentence.
+- Get the current date/time for the heading timestamp
+- Flat bullet list — no subheadings or categories, just items
+- Each item: `- **Title** — One sentence description.`
+- Before appending, read the existing file (if any) and skip any item whose title or core idea already appears elsewhere in the document — don't add duplicates
+- Append the new section at the bottom
 
 Use this structure:
 
 ```markdown
-## <branch-name> — YYYY-MM-DD
+## <branch-name> — YYYY-MM-DD-HH-MM
 
-### <Feature or Theme>
 - **Title** — Description.
-- **Title** — Description.
-
-### <Another Theme>
 - **Title** — Description.
 ```
-
-If the file already exists, append the new section at the bottom rather than overwriting. If the same branch already has a section, add a new dated block under it.
