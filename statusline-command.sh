@@ -123,7 +123,7 @@ sep="${GRAY} │ ${RESET}"
 
 line1="${CYAN}${model}${RESET}"
 if [ -n "$api_mode" ]; then
-  line1="${line1}${sep}${ORANGE}API key${RESET}"
+  line1="${line1}${sep}${ORANGE}API billing${RESET}"
 elif [ -n "$usage_pct" ]; then
   line1="${line1}${sep}${GRAY}Usage: ${usage_color}${usage_pct}%${RESET}${progress_bar}"
   if [ -n "$reset_time" ]; then
