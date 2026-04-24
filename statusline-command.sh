@@ -26,9 +26,14 @@ fi
 usage_pct=""
 reset_time=""
 progress_bar=""
+api_mode=""
+
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+  api_mode=1
+fi
 
 cache_file="$HOME/.claude/.statusline-usage-cache"
-if [ -f "$cache_file" ]; then
+if [ -z "$api_mode" ] && [ -f "$cache_file" ]; then
   cache_ts=$(grep "^TIMESTAMP=" "$cache_file" 2>/dev/null | cut -d= -f2)
   now_ts=$(date +%s)
   if [ -n "$cache_ts" ]; then
@@ -40,7 +45,7 @@ if [ -f "$cache_file" ]; then
   fi
 fi
 
-if [ -z "$usage_pct" ]; then
+if [ -z "$api_mode" ] && [ -z "$usage_pct" ]; then
   swift_result=$(swift "$HOME/.claude/fetch-claude-usage.swift" 2>/dev/null)
   if [ $? -eq 0 ] && [ -n "$swift_result" ]; then
     usage_pct=$(echo "$swift_result" | cut -d'|' -f1)
@@ -117,7 +122,9 @@ fi
 sep="${GRAY} │ ${RESET}"
 
 line1="${CYAN}${model}${RESET}"
-if [ -n "$usage_pct" ]; then
+if [ -n "$api_mode" ]; then
+  line1="${line1}${sep}${ORANGE}API key${RESET}"
+elif [ -n "$usage_pct" ]; then
   line1="${line1}${sep}${GRAY}Usage: ${usage_color}${usage_pct}%${RESET}${progress_bar}"
   if [ -n "$reset_time" ]; then
     line1="${line1}${GRAY} → Reset: ${CYAN}${reset_time}${RESET}"
