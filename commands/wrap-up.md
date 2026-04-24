@@ -100,4 +100,20 @@ Then compile a numbered list of **5-10 actionable follow-up items** discovered d
 
 For each item, write a one-line title and a brief description (1-2 sentences explaining the issue and why it matters).
 
-After presenting the list, ask the user: **"Which of these should I file as GitHub issues?"** — accept numbers, ranges, "all", or "none". Then file the selected items using `gh issue create`.
+After presenting the list, determine how to persist them:
+
+**If you own the repo** (check with `gh repo view --json owner --jq '.owner.login'` and compare to `gh api user --jq '.login'`):
+- Ask: **"Which of these should I file as GitHub issues?"** — accept numbers, ranges, "all", or "none". File selected items with `gh issue create`.
+
+**If you do not own the repo:**
+- Do not offer to file GitHub issues.
+- Instead, append the items to `.claude/todos/followups.md` in the repo (create the file and directory if they don't exist — `.claude/todos/` is gitignored so it won't be committed). Use this format:
+
+```markdown
+## Session: YYYY-MM-DD — <one-line summary of what was done>
+
+1. **Title** — Description.
+2. ...
+```
+
+If the file already exists, append a new dated section rather than overwriting.
