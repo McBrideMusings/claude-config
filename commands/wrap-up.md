@@ -107,11 +107,11 @@ After presenting the list, determine how to persist them:
 
 **If you do not own the repo:**
 - Do not offer to file GitHub issues.
-- Instead, append the items to `~/.claude/todos/<project>/followups.md`, where `<project>` is the folder name of the root git repo on this machine (not the remote repo name). Derive it with:
+- Instead, append the items to `~/.claude/followups/<project>.md`, where `<project>` is the folder name of the root git repo on this machine (not the remote repo name). Derive it with:
   ```
   basename "$(dirname "$(realpath "$(git rev-parse --git-common-dir)")")"
   ```
-  This resolves correctly from worktrees too — it always gives the main repo folder name. Create the directory and file if they don't exist.
+  This resolves correctly from worktrees too — it always gives the main repo folder name. Create `~/.claude/followups/` if it doesn't exist.
 
 Format rules:
 - Get the current branch with `git branch --show-current`
