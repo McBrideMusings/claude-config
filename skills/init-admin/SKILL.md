@@ -79,6 +79,14 @@ The blank line between `deploy` and `test` is conceptual grouping (build/run/shi
 
 **Important:** Archetype commands always render in the archetype's order, with manifest-only commands appended after. To control order, you must define all commands explicitly in `[commands.*]` blocks and use `archetypes = []`. The manifest `desc`/`run` values override the archetype's for the same command name, but order is still archetype-first.
 
+**Adding spacers (blank rows between groups):** Use the `order` field with `"---"` as a separator token:
+
+```toml
+order = ["build", "dev", "deploy", "---", "test", "vet", "fmt", "clean", "docs"]
+```
+
+This emits `add_spacer()` calls in the generated script, producing a blank row in both the TUI menu and `--help` output. `"---"` is the only recognized separator token (not `"--"` or `"separator"`).
+
 ### Phase 3: Env var discovery (if the manifest uses `${VAR}`)
 
 If `admin.toml` or any generated command references `${VAR}` placeholders, run `./admin env` to list referenced vars and their current state (set / default / UNSET required). Tell the user which env vars they need to export before commands will work.
