@@ -45,6 +45,7 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 1. Run `~/.admin/init-admin .` — it detects the stack, writes `admin.toml`, and generates `./admin`. **Do not explore the project yourself to guess the archetype — the detectors do this.**
 2. Read the generated `admin.toml` and show it to the user along with the detector match (printed in the generator's stdout).
 3. Point them at any TODO shell strings (the `simple` fallback archetype uses placeholder `echo 'TODO: …'` commands that need to be filled in).
+4. **Apply standard command ordering** (see Phase 2c below) — archetypes define their own order which is usually wrong. Always reorder after bootstrap.
 
 ### Phase 2b: Regenerate / Audit (admin.toml exists)
 
@@ -52,6 +53,31 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
    - **Exit 0, clean** → nothing to do unless the user is explicitly asking for a change.
    - **Exit 2, drift** → the on-disk `./admin` was hand-edited, or the archetype catalog / `admin_lib` has moved since the last regen. Show the user the unified diff and ask whether they want to regenerate (throwing away the hand edits) or keep the drift.
 2. To update after the user edits `admin.toml`, run `~/.admin/init-admin --regenerate .`.
+
+### Phase 2c: Standard command ordering
+
+After any bootstrap or regeneration, check `./admin --help` and ensure commands appear in this order. If they don't, explicitly define all commands in `[commands.*]` blocks in `admin.toml` (this overrides the archetype's order) and set `archetypes = []` if needed to prevent the archetype from re-imposing its order.
+
+**Required order:**
+```
+build
+dev
+deploy
+
+test
+vet
+fmt
+clean
+docs
+```
+
+The blank line between `deploy` and `test` is conceptual grouping (build/run/ship, then quality/docs) — not literally blank in the TOML, just the mental model for ordering.
+
+- `dev` = run the project locally (e.g. `go run ./cmd/...`, `python app.py`, `npm run dev`)
+- `docs` = view or generate docs (e.g. `go doc ./...`, `open docs/`, `npm run docs`)
+- Not every project has every command — omit ones that don't apply, but keep the relative order of those that do.
+
+**Important:** Archetype commands always render in the archetype's order, with manifest-only commands appended after. To control order, you must define all commands explicitly in `[commands.*]` blocks and use `archetypes = []`. The manifest `desc`/`run` values override the archetype's for the same command name, but order is still archetype-first.
 
 ### Phase 3: Env var discovery (if the manifest uses `${VAR}`)
 
