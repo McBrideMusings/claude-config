@@ -15,4 +15,5 @@
 !commands/
 !commands/**
 !statusline-command.sh
+!statusline-config.txt
 !fetch-claude-usage.swift
