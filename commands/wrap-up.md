@@ -11,6 +11,8 @@ Summarize the work completed this session by reviewing:
 - `git diff` and `git status` for uncommitted changes
 - Recent commits on the current branch (`git log --oneline -20`)
 
+**Multiple repos:** If the session touched more than one repository, run a full wrap-up for each repo — separate commits, separate tracking updates, and separate follow-up lists per repo. Do not bundle cross-repo follow-ups together.
+
 ---
 
 ## Phase 2: Update project tracking
@@ -102,13 +104,15 @@ For each item, write a one-line title and a brief description (1-2 sentences exp
 
 After presenting the list, **always ask the user which items to persist before writing anything**. Never file any follow-ups without an explicit answer.
 
+**If the session touched multiple repos, present a separate follow-up list per repo and ask which items to persist for each repo independently.**
+
 **Destination decision — this is the only choice wrap-up makes. Everything else is delegated.**
 
 GitHub issues are ONLY an available destination when the remote's owner is `McBrideMusings` (case-insensitive match — `mcbridemusings`, `McBrideMusings`, etc. all qualify). No other owner qualifies: not orgs the user belongs to, not repos the user has push access to, not repos the user has been contributing to. Only `McBrideMusings`-owned repos.
 
-Check with:
+Check with (must `cd` into the project directory first — `gh repo view` does not accept a `-C` flag and will silently fail or return wrong results if run from a different directory):
 ```
-gh repo view --json owner --jq '.owner.login'
+cd <project_dir> && gh repo view --json owner --jq '.owner.login'
 ```
 
 - **If the owner matches `McBrideMusings` (case-insensitive):** file via `gh issue create` (one issue per selected follow-up). Before filing, run `gh issue list --state all --limit 50` and skip items whose core idea already appears as an open or recently-closed issue.
