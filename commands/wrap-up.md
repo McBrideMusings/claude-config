@@ -100,32 +100,22 @@ Then compile a numbered list of **5-10 actionable follow-up items** discovered d
 
 For each item, write a one-line title and a brief description (1-2 sentences explaining the issue and why it matters).
 
-After presenting the list, determine how to persist them:
+After presenting the list, **always ask the user which items to persist before writing anything**. Never file any follow-ups without an explicit answer.
 
-**If you own the repo** (check with `gh repo view --json owner --jq '.owner.login'` and compare to `gh api user --jq '.login'`):
-- Ask: **"Which of these should I file as GitHub issues?"** — accept numbers, ranges, "all", or "none". File selected items with `gh issue create`.
+**Destination decision — this is the only choice wrap-up makes. Everything else is delegated.**
 
-**If you do not own the repo:**
-- Do not offer to file GitHub issues.
-- Instead, append the items to `~/.claude/followups/<project>.md`, where `<project>` is the folder name of the root git repo on this machine (not the remote repo name). Derive it with:
-  ```
-  basename "$(dirname "$(realpath "$(git rev-parse --git-common-dir)")")"
-  ```
-  This resolves correctly from worktrees too — it always gives the main repo folder name. Create `~/.claude/followups/` if it doesn't exist.
+GitHub issues are ONLY an available destination when the remote's owner is `McBrideMusings` (case-insensitive match — `mcbridemusings`, `McBrideMusings`, etc. all qualify). No other owner qualifies: not orgs the user belongs to, not repos the user has push access to, not repos the user has been contributing to. Only `McBrideMusings`-owned repos.
 
-Format rules:
-- Get the current branch with `git branch --show-current`
-- Get the current date/time for the heading timestamp
-- Flat bullet list — no subheadings or categories, just items
-- Each item: `- **Title** — One sentence description.`
-- Before appending, read the existing file (if any) and skip any item whose title or core idea already appears elsewhere in the document — don't add duplicates
-- Append the new section at the bottom
-
-Use this structure:
-
-```markdown
-## <branch-name> — YYYY-MM-DD-HH-MM
-
-- **Title** — Description.
-- **Title** — Description.
+Check with:
 ```
+gh repo view --json owner --jq '.owner.login'
+```
+
+- **If the owner matches `McBrideMusings` (case-insensitive):** file via `gh issue create` (one issue per selected follow-up). Before filing, run `gh issue list --state all --limit 50` and skip items whose core idea already appears as an open or recently-closed issue.
+- **Every other value** — org, other user, no remote, or any uncertainty — means use the `followups` skill. Invoke it via the Skill tool; it owns the file format, path, and dedupe logic. Do NOT offer GitHub issues in this case. Do NOT hand-write to `~/.claude/followups/` yourself.
+
+When in doubt, use the followups skill.
+
+Ask the user exactly one question, naming the single determined destination — e.g. **"Which of these should I file as GitHub issues? (numbers, ranges, 'all', or 'none')"** (McBrideMusings repo) or **"Which of these should I save via the followups skill? (numbers, ranges, 'all', or 'none')"** (every other case). Never offer both.
+
+If the user says "none", write nothing. Do not split items across destinations. Do not infer intent from silence.
