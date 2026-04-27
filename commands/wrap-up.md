@@ -85,41 +85,10 @@ Before committing, run two parallel quality checks on the session's changes:
 
 ---
 
-## Phase 6: Session summary
+## Phase 6: Session summary and follow-ups
 
 Give a brief summary of:
 - What was accomplished this session
 - What tracking/docs were updated
 
-Then compile a numbered list of **5-10 actionable follow-up items** discovered during the session. These should include anything worth addressing later — not just blockers, but also:
-- Code smells or cleanup opportunities
-- Architectural improvements
-- UX/UI refinements noticed while working
-- Performance or efficiency wins
-- Feature ideas that came up naturally
-- Bugs or edge cases spotted but not fixed
-- Test coverage gaps
-
-For each item, write a one-line title and a brief description (1-2 sentences explaining the issue and why it matters).
-
-After presenting the list, **always ask the user which items to persist before writing anything**. Never file any follow-ups without an explicit answer.
-
-**If the session touched multiple repos, present a separate follow-up list per repo and ask which items to persist for each repo independently.**
-
-**Destination decision — this is the only choice wrap-up makes. Everything else is delegated.**
-
-GitHub issues are ONLY an available destination when the remote's owner is `McBrideMusings` (case-insensitive match — `mcbridemusings`, `McBrideMusings`, etc. all qualify). No other owner qualifies: not orgs the user belongs to, not repos the user has push access to, not repos the user has been contributing to. Only `McBrideMusings`-owned repos.
-
-Check with (must `cd` into the project directory first — `gh repo view` does not accept a `-C` flag and will silently fail or return wrong results if run from a different directory):
-```
-cd <project_dir> && gh repo view --json owner --jq '.owner.login'
-```
-
-- **If the owner matches `McBrideMusings` (case-insensitive):** file via `gh issue create` (one issue per selected follow-up). Before filing, run `gh issue list --state all --limit 50` and skip items whose core idea already appears as an open or recently-closed issue.
-- **Every other value** — org, other user, no remote, or any uncertainty — means use the `followups` skill. Invoke it via the Skill tool; it owns the file format, path, and dedupe logic. Do NOT offer GitHub issues in this case. Do NOT hand-write to `~/.claude/followups/` yourself.
-
-When in doubt, use the followups skill.
-
-Ask the user exactly one question, naming the single determined destination — e.g. **"Which of these should I file as GitHub issues? (numbers, ranges, 'all', or 'none')"** (McBrideMusings repo) or **"Which of these should I save via the followups skill? (numbers, ranges, 'all', or 'none')"** (every other case). Never offer both.
-
-If the user says "none", write nothing. Do not split items across destinations. Do not infer intent from silence.
+Then invoke the `suggest-followups` skill using the Skill tool to generate, present, and file follow-up items.
