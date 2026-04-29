@@ -1,9 +1,9 @@
 ---
-name: init-admin
-description: Scaffold, regenerate, or audit a Python-based `admin` task runner for the current project. Reads/writes an `admin.toml` manifest and generates a self-contained `./admin` script from composable archetypes. Also audits existing scripts for drift and inline Python that should be migrated.
+name: admin
+description: General-purpose skill for working with the project's `admin` task runner — adding commands, editing admin.toml, regenerating ./admin, auditing for drift or inline code, and migrating inline code to admin_lib/archetypes. Use any time the user wants to add, change, or understand admin commands, or scaffold a new admin.toml.
 ---
 
-# /init-admin — Manifest-Driven Admin Task Runner
+# /admin — Manifest-Driven Admin Task Runner
 
 **v2 flow (manifest-driven).** The generator writes two files per project:
 
@@ -14,7 +14,7 @@ The generator tool is `~/.admin/init-admin` (installed by the `admin-project-too
 
 - **Bootstrap** (no args): detect project stack → write starter `admin.toml` → generate `./admin`
 - **`--regenerate`**: reload `admin.toml` and rewrite `./admin` (idempotent; normal loop for adding/changing commands)
-- **`--audit`**: diff the on-disk `./admin` against what would be regenerated; exit 0 on clean, 2 on drift; also reports inline Python complexity warnings
+- **`--audit`**: diff the on-disk `./admin` against what would be regenerated; exit 0 on clean, 2 on drift; also reports inline code complexity warnings
 
 ## Critical rule: treat the generator as a black box
 
@@ -29,11 +29,11 @@ If the generator produces unexpected output or the wrong archetype match, **repo
 
 ---
 
-## Inline Python policy (critical — read before making any changes)
+## Inline code policy (critical — read before making any changes)
 
-**This is the most important rule for working with admin.toml.** Every `[commands.*]` entry with `kind = "python"` is inline Python embedded in the manifest. Inline Python is a last resort, not a default.
+**This is the most important rule for working with admin.toml.** Every `[commands.*]` entry with `kind = "python"` is inline code embedded in the manifest. Inline code is a last resort, not a default.
 
-### What is acceptable inline Python
+### What is acceptable inline code
 
 A command body that:
 - Parses which sub-target the user wants (e.g. `if a in ("mac", "macos"): target = "mac"`)
@@ -58,7 +58,7 @@ kind = "python"
 run = "test_server(globals().get('_SERVER_CONFIG') or {})"
 ```
 
-### What is NOT acceptable inline Python
+### What is NOT acceptable inline code
 
 - Any `import` statement (that logic belongs in `admin_lib`)
 - Loops (`for`, `while`)
@@ -86,7 +86,7 @@ if rc != 0: sys.exit(1)
 
 This should be a function `deploy_server_docker(cfg)` in `admin_lib/rust.py` (or equivalent module), called from the command as `deploy_server_docker(globals().get("_SERVER_CONFIG") or {})`.
 
-### When the audit flags inline Python
+### When the audit flags inline code
 
 The audit command (`init-admin --audit`) reports:
 - **Moderate** (4–8 logic lines, or has loops/imports): "consider wrapping in an admin_lib function"
@@ -97,9 +97,9 @@ When the audit flags a command, **do not ignore it**. Present the finding to the
 
 ---
 
-## Migration playbook: from inline Python to admin_lib / archetype
+## Migration playbook: from inline code to admin_lib / archetype
 
-When you find inline Python that needs to be moved, follow this decision tree:
+When you find inline code that needs to be moved, follow this decision tree:
 
 ### 1. Identify what the code does
 
@@ -115,7 +115,7 @@ Read the inline run string and classify it:
 | New sub-target for an existing command (e.g. `build server`) | Add handler to archetype template, add new `admin_lib` function, add config key to `[server]`/`[apple]` |
 | New wrapper for a generic operation (docker deploy, cross-compile, etc.) | Add function to the appropriate `admin_lib/` module |
 | Entirely new command class (new deploy target, new service type) | New archetype, or new command added to existing archetype |
-| Project-specific one-off that can't be generalized | `kind = "shell"` if it's a shell command, or a ≤4-line python dispatch if unavoidable |
+| Project-specific one-off that can't be generalized | `kind = "shell"` if it's a shell command, or a ≤4-line dispatch if unavoidable |
 
 ### 3. Implement in admin-project-tool
 
@@ -129,7 +129,7 @@ After making changes, run `bash install.sh --force` in the admin-project-tool re
 
 ### 4. Migration example
 
-Before (complex inline Python in admin.toml):
+Before (complex inline code in admin.toml):
 ```toml
 [commands.build]
 kind = "python"
@@ -190,16 +190,16 @@ Follow these phases. Do NOT skip phases or auto-confirm on behalf of the user.
 
 1. Run `~/.admin/init-admin .` — it detects the stack, writes `admin.toml`, and generates `./admin`. **Do not explore the project yourself to guess the archetype — the detectors do this.**
 2. Read the generated `admin.toml` and show it to the user along with the detector match (printed in the generator's stdout).
-3. Check for inline Python warnings in the output. If any are emitted, address them before moving on (see "Inline Python policy" above).
+3. Check for inline code warnings in the output. If any are emitted, address them before moving on (see "Inline code policy" above).
 4. Point them at any TODO shell strings (the `simple` fallback archetype uses placeholder `echo 'TODO: …'` commands that need to be filled in).
 5. **Apply standard command ordering** (see Phase 2c below) — archetypes define their own order which is usually wrong. Always reorder after bootstrap.
 
 ### Phase 2b: Regenerate / Audit (admin.toml exists)
 
-1. Run `~/.admin/init-admin --audit . --force-dirty` first to check for drift and inline Python issues.
+1. Run `~/.admin/init-admin --audit . --force-dirty` first to check for drift and inline code issues.
    - **Exit 0, clean** → nothing to do unless the user is explicitly asking for a change.
    - **Exit 2, drift** → the on-disk `./admin` was hand-edited, or the archetype catalog / `admin_lib` has moved since the last regen. Show the user the unified diff and ask whether they want to regenerate (throwing away the hand edits) or keep the drift.
-   - **Inline Python warnings** → these are printed before the exit code regardless. Present them to the user and propose a migration plan for any flagged commands.
+   - **Inline code warnings** → these are printed before the exit code regardless. Present them to the user and propose a migration plan for any flagged commands.
 2. To update after the user edits `admin.toml`, run `~/.admin/init-admin --regenerate . --force-dirty`.
 
 ### Phase 2c: Standard command ordering
@@ -270,12 +270,12 @@ Ask the user if they want to commit `admin.toml` and `./admin` together. They sh
 
 ## Key mental-model notes
 
-- **`admin.toml` is the source of truth.** Hand-edits to `./admin` are drift. Escape hatch for project-specific Python is `[inline] file = "admin_inline.py"` in the manifest, not editing the generated script. **`[inline]` is itself a migration target — the audit flags it.**
+- **`admin.toml` is the source of truth.** Hand-edits to `./admin` are drift. Escape hatch for project-specific code is `[inline] file = "admin_inline.py"` in the manifest, not editing the generated script. **`[inline]` is itself a migration target — the audit flags it.**
 - **Archetypes are composable mixins.** `archetypes = ["docker-unraid", "apple"]` is valid and produces a merged command set. Later archetype wins on conflicts; manifest `[commands]` wins over all archetypes.
 - **Env vars are runtime.** `${VAR}` and `${VAR:-default}` in manifest strings are passed through to the generated script as literals and resolved by `admin_lib.core.resolve_env()` when commands run. Never expand them at generation time.
 - **`generator_commit` is the repo SHA of `admin-project-tool`** at the time of last regeneration. The audit compares SHAs to tell the user whether the generator itself has moved since the manifest was last regenerated.
 - **Python 3.11+ required** everywhere (stdlib `tomllib`). The generated `./admin` starts with a runtime guard.
-- **Config tables drive archetype behavior.** `[apple]` and `[server]` tables in admin.toml are emitted as `_APPLE_CONFIG` and `_SERVER_CONFIG` dicts in the generated script. Archetype commands read these at runtime — adding a key to the table is how you configure archetype behavior without inline Python.
+- **Config tables drive archetype behavior.** `[apple]` and `[server]` tables in admin.toml are emitted as `_APPLE_CONFIG` and `_SERVER_CONFIG` dicts in the generated script. Archetype commands read these at runtime — adding a key to the table is how you configure archetype behavior without inline code.
 
 ## File-based log tailing (`[logs]` section)
 
