@@ -43,11 +43,13 @@ Reviewed: [uncommitted changes | N commits on branch-name vs main]
 
 ### Issues (N found)
 
-1. **[severity: high/medium]** Brief description
-   File: path/to/file.ext:LINE
-   Why: explanation with evidence
+1. **[high]** Brief description
+   - **File:** `path/to/file.ext:LINE`
+   - **Why:** explanation with evidence
 
-2. ...
+2. **[medium]** Brief description
+   - **File:** `path/to/file.ext:LINE`
+   - **Why:** explanation with evidence
 
 ### No issues found
 (if all scored below 75)
