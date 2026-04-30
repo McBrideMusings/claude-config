@@ -331,6 +331,70 @@ These still exist until migrated. A v1 `./admin` is a bundled single file with a
 
 ---
 
+## Logging system
+
+Every `./admin` command writes its terminal output to a **named log file** in `tmp/`. The file name reflects the full subcommand route:
+
+| Command run | Log file |
+|---|---|
+| `./admin dev ios` | `tmp/dev-ios.log` |
+| `./admin dev device` | `tmp/dev-device.log` |
+| `./admin dev mac` | `tmp/dev-mac.log` |
+| `./admin deploy mac` | `tmp/deploy-mac.log` |
+| `./admin build ios` | `tmp/build-ios.log` |
+| `./admin test server` | `tmp/test-server.log` |
+| `./admin somecommand` | `tmp/somecommand.log` |
+
+By default, **up to 3 previous runs are retained** as `.log.1`, `.log.2`, `.log.3` (most recent = `.1`). The current run is always the plain `.log` file.
+
+### `./admin logs` — universal log tailer
+
+Every generated `./admin` script has a built-in `logs` command that tails log files by filter:
+
+```
+./admin logs                  # picker of all *.log files in tmp/, sorted by recency
+./admin logs dev              # filter to files containing "dev", tail if one match
+./admin logs dev ios          # filter "dev-ios", tail tmp/dev-ios.log directly
+./admin logs deploy mac       # filter "deploy-mac", tail tmp/deploy-mac.log
+```
+
+- Args are joined with `-` to form the filter string (substring match on basename)
+- If one match → tail immediately; multiple → interactive picker; zero → show all
+- Accepts filename with or without `.log` extension as filter
+
+### When the user says "check the logs"
+
+1. Determine which command was most recently run (ask or infer from context)
+2. Read `tmp/<cmd>-<subcmd>.log` directly — don't run `./admin logs` yourself, just `Read` the file
+3. Previous run is at `tmp/<cmd>-<subcmd>.log.1` if needed
+
+**Build problem** (didn't launch, crash on start): read from the top (first 80 lines)
+**Runtime bug** (launched but something went wrong): read from the bottom (last 80 lines)
+Don't read the full file unless targeted reads didn't give enough info.
+
+### Configuring logging in admin.toml
+
+```toml
+[logging]
+enabled = true      # false → disable all file logging
+dir = "tmp"         # log directory (default: tmp)
+retain = 3          # number of old copies to keep (default: 3, 0 = overwrite)
+```
+
+Per-command overrides in any `[commands.<name>]` table:
+```toml
+[commands.dev]
+log_file = "tmp/custom.log"   # explicit path override
+log_retain = 0                 # per-command retention
+log = false                    # disable logging for this command
+```
+
+### `tmp/` directory
+
+All log files are in `tmp/` which is git-ignored (`tmp/.gitignore` contains `*`). Rotated copies (`.log.1`, `.log.2`, `.log.3`) are also in `tmp/`. Only the current log is available to tail from a live session.
+
+---
+
 ## read-logs.md Template
 
 If `.claude/skills/read-logs.md` doesn't exist, create it:
@@ -343,11 +407,18 @@ description: Read runtime logs from the last ./admin dev or other command. Use w
 
 # Read Logs
 
-The log file is at `tmp/run.log` in the project root. It captures all stdout/stderr from the last `./admin` run.
+Admin commands write output to named log files in `tmp/`. The file name reflects the subcommand route:
+- `./admin dev ios` → `tmp/dev-ios.log`
+- `./admin dev device` → `tmp/dev-device.log`
+- `./admin deploy mac` → `tmp/deploy-mac.log`
+- `./admin build ios` → `tmp/build-ios.log`
+- `./admin somecommand` → `tmp/somecommand.log`
+
+Previous runs are retained as `.log.1`, `.log.2`, `.log.3` (most recent = `.1`).
 
 ## Strategy
 
-Determine whether this is a **build problem** or a **runtime/logging problem**, then read accordingly.
+Determine which command was last run, then read the corresponding file. Determine whether this is a **build problem** or a **runtime/logging problem**, then read accordingly.
 
 ### Build problem (app didn't launch, crash on start)
 Read from the **top** of the log file (first 80 lines). Look for:
@@ -360,9 +431,11 @@ Read from the **bottom** of the log file (last 80 lines). The user typically qui
 
 ### If you need more context
 - Read the full file only if the targeted read didn't give enough info
+- Check the previous run at `.log.1` if the current log is empty or unrelated
 - Search for specific error patterns
 
 ### What NOT to do
 - Don't read the entire log file upfront if it's large
-- Don't ask the user to paste logs -- just read the file
+- Don't ask the user to paste logs — just read the file
+- Don't run `./admin logs` to view logs — use the Read tool directly on the file
 ```
