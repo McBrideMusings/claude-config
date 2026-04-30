@@ -28,6 +28,7 @@
     "ask": [],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -47,6 +48,26 @@
           {
             "type": "command",
             "command": "SUB=$(jq -r \".env.CLAUDE_PROJECT // empty\" .claude/settings.local.json 2>/dev/null || true); curl -s \"http://100.94.40.126:9999/?sound=${NOTIFY_STOP_SOUND:-Funk}&msg=Task+complete&subtitle=${SUB:-$(basename $PWD)}\" &"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/pierce/.admin/hooks/session-admin-check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/git-sync-session-start.sh"
           }
         ]
       }
