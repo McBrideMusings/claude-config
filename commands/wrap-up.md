@@ -43,19 +43,31 @@ Check for and update ANY of these tracking mechanisms that exist. Do not create 
 
 Update documentation files ONLY if they already exist and the session's changes affect them.
 
-### CLAUDE.md
-- Update to reflect new features, changed architecture, new files, new keyboard shortcuts, new configuration, etc.
-- Stay under the 40k character limit (`wc -m CLAUDE.md`). Trim verbose sections if needed.
-- Do not duplicate information that's obvious from the code.
+### Standard docs site (PRD / roadmap / file-map)
 
-### README.md
-- Update if session changes affect user-facing documentation — new features, setup steps, configuration, or usage.
+If the project has the standard layout (`docs/PRD.md`, `docs/roadmap.md`, `docs/file-map.md` — set up by the `/docs` skill), check session work against the update-when table from the project's CLAUDE.md.
 
-### docs/ folder
-- If a documentation site exists (VitePress, Docusaurus, etc.): update files covering areas affected by session changes.
+Split changes into **mechanical** (apply silently, report in summary) and **substantive** (show diff, ask before applying):
+
+**Mechanical — auto-apply, then report:**
+- `docs/file-map.md` — when top-level files/folders were added, removed, renamed, or moved. Detect via `git diff --name-status` for the session's commits or working-tree changes. Update entries inline; don't restructure the file.
+- `CLAUDE.md` "Documentation" section — when a new standard doc was created (e.g., `docs/api.md` didn't exist before, now it does → add the row to the update-when table).
+
+**Substantive — propose with diff, ask before applying:**
+- `docs/PRD.md` — any product behavior, scope, or surface-area change
+- `docs/roadmap.md` — direction shifts, completed initiatives (move from Now → previous milestone or just remove), newly deferred items
+- `docs/api.md` (if exists) — external API surface change
+- `docs/architecture/*` (if exists) — subsystem behavior change
+
+Print a "**Mechanical doc updates applied:**" summary listing what was changed without prompt. Then list each substantive proposal with a diff and ask before applying.
+
+If `docs/` doesn't exist or doesn't follow the standard layout, skip this section silently.
 
 ### Other documentation
-- Check for and update any other documentation files that exist and are affected (CONTRIBUTING.md, API docs, etc.)
+
+- **CLAUDE.md** (top-level) — update to reflect new features, changed architecture, new keyboard shortcuts, new configuration. Stay under 40k chars (`wc -m CLAUDE.md`). Don't duplicate code.
+- **README.md** — update if session changes affect user-facing setup or features.
+- **CONTRIBUTING.md, etc.** — update if session changes affect them.
 
 ---
 

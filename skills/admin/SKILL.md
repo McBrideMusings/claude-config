@@ -222,7 +222,7 @@ docs
 The blank line between `deploy` and `test` is conceptual grouping (build/run/ship, then quality/docs) — not literally blank in the TOML, just the mental model for ordering.
 
 - `dev` = run the project locally (e.g. `go run ./cmd/...`, `python app.py`, `npm run dev`)
-- `docs` = view or generate docs (e.g. `go doc ./...`, `open docs/`, `npm run docs`)
+- `docs` = serve docs locally with hot reload so the user can read them in a browser. **Single command, no sub-targets** — e.g. `kind = "shell"` + `run = "npm run docs:dev"` for VitePress, `run = "mkdocs serve"` for MkDocs, `run = "go doc -http=:6060"` for Go. Do *not* wire `build`/`preview`/`deploy` of docs into admin unless the user explicitly publishes a static docs site somewhere — for local viewing those are noise.
 - Not every project has every command — omit ones that don't apply, but keep the relative order of those that do.
 
 **Important:** Archetype commands always render in the archetype's order, with manifest-only commands appended after. To control order, you must define all commands explicitly in `[commands.*]` blocks and use `archetypes = []`. The manifest `desc`/`run` values override the archetype's for the same command name, but order is still archetype-first.
@@ -247,6 +247,11 @@ After generation succeeds:
 2. **`.claude/skills/read-logs.md`** — create if missing (template below)
 3. **`CLAUDE.local.md`** — create or update with the auto-reload instruction (see below)
 4. **Project `CLAUDE.md`** — if it references `admin.sh` or a v1 template name, update to reference `./admin` and mention `admin.toml` is the source of truth
+5. **Docs site, if present** — if the project has a `docs/` site (VitePress or otherwise), make sure two things are true:
+   - `admin.toml` has a single `[commands.docs]` shell command running the dev server (`run = "npm run docs:dev"` for VitePress). No sub-targets. Add to the `order` array between `clean` and `icons`/`logs`/`reload`.
+   - Project `CLAUDE.md` has a `## Documentation` section pointing at the docs site and listing which doc files to keep current.
+
+   If either is missing or shaped differently (e.g., `[commands.docs]` has sub-targets, or CLAUDE.md just says "see docs/" without the update-when table), invoke the `/docs` skill (or `/audit-docs` command) — it owns the docs convention. Don't fix it from the admin skill alone.
 
 ### Phase 5: Auto-reload documentation
 
