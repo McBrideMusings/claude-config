@@ -25,15 +25,29 @@ For each item, write a one-line title and a brief description (1-2 sentences exp
 
 **Destination decision — this is the only choice this skill makes. Everything else is delegated.**
 
-GitHub issues are ONLY an available destination when the remote's owner is `McBrideMusings` (case-insensitive match — `mcbridemusings`, `McBrideMusings`, etc. all qualify). No other owner qualifies: not orgs the user belongs to, not repos the user has push access to, not repos the user has been contributing to. Only `McBrideMusings`-owned repos.
+GitHub issues are ONLY an available destination when a remote is owned by `McBrideMusings` (case-insensitive). No other owner qualifies — not orgs, not repos with push access, not upstream repos being contributed to. Only `McBrideMusings`-owned remotes.
 
-Check with (must `cd` into the project directory first — `gh repo view` does not accept a `-C` flag and will silently fail or return wrong results if run from a different directory):
+Use a two-pass check:
+
+**Pass 1 — default remote:**
 ```
 cd <project_dir> && gh repo view --json owner --jq '.owner.login'
 ```
+If this returns `McBrideMusings` (case-insensitive), use this repo. Done.
 
-- **If the owner matches `McBrideMusings` (case-insensitive):** file via `gh issue create` (one issue per selected follow-up). Before filing, run `gh issue list --state all --limit 50` and skip items whose core idea already appears as an open or recently-closed issue.
-- **Every other value** — org, other user, no remote, or any uncertainty — means use the `followups` skill. Invoke it via the Skill tool; it owns the file format, path, and dedupe logic. Do NOT offer GitHub issues in this case. Do NOT hand-write to `~/.claude/followups/` yourself.
+**Pass 2 — all remotes (run only if Pass 1 didn't match):**
+```
+git remote -v
+```
+Parse each remote URL for `github.com`. For any remote URL containing `github.com`, extract the `OWNER/REPO` slug (works for both `git@github.com:OWNER/REPO.git` and `https://github.com/OWNER/REPO`). For each unique slug, check:
+```
+gh repo view OWNER/REPO --json owner --jq '.owner.login'
+```
+If any remote resolves to `McBrideMusings`, use that repo (`OWNER/REPO`) as the target. Prefer a remote named `mine` over others if multiple match.
+
+**Filing:**
+- **McBrideMusings repo found (either pass):** file via `gh issue create --repo OWNER/REPO` (one issue per selected follow-up). Before filing, run `gh issue list --repo OWNER/REPO --state all --limit 50` and skip items whose core idea already appears as an open or recently-closed issue.
+- **No McBrideMusings remote found anywhere:** use the `followups` skill. Invoke it via the Skill tool; it owns the file format, path, and dedupe logic. Do NOT offer GitHub issues. Do NOT hand-write to `~/.claude/followups/` yourself.
 
 When in doubt, use the followups skill.
 
