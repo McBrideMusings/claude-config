@@ -1,6 +1,6 @@
 # claude-config
 
-Personal Claude Code configuration synced across machines. Only `agents/`, `skills/`, and `commands/` are tracked — everything else (sessions, plugins, cache, auth tokens, settings) stays machine-local via the allowlist `.gitignore`.
+Personal Claude Code configuration synced across machines. Only `agents/`, `skills/`, `commands/`, and `hooks/` are tracked — everything else (sessions, plugins, cache, auth tokens) stays machine-local via the allowlist `.gitignore`. `settings.json` and `statusline-*` are also tracked.
 
 **Clone a new machine:**
 ```bash
@@ -36,6 +36,7 @@ Slash commands invoked with `/<name>`.
 | [code-review](commands/code-review.md) | Review uncommitted changes or branch changes against the base branch. |
 | [diagnose](commands/diagnose.md) | Enter diagnostic mode — stricter rules for investigating problems until `/diagnose-done`. |
 | [diagnose-done](commands/diagnose-done.md) | Exit diagnostic mode and resume normal behavior. |
+| [grounded-research](commands/grounded-research.md) | Run the grounded-research skill on a request — extract quotes, cite every claim, admit uncertainty. |
 | [init-admin](commands/init-admin.md) | Scaffold or audit a Python-based `admin` task runner with inline TUI menu. Detects project type and generates commands. |
 | [init-docs](commands/init-docs.md) | Initialize a VitePress documentation site for the project. |
 | [init-gh-issues](commands/init-gh-issues.md) | Initialize or normalize GitHub Issues labels and templates for a repo. |
@@ -71,7 +72,7 @@ Auto-loaded skills invoked by name or by the trigger phrases in each skill's des
 |---|---|
 | [systematic-debugging](skills/systematic-debugging/SKILL.md) | Four-phase debugging process — find root cause before any fix. Use for any bug, test failure, or unexpected behavior. |
 | [verification-before-completion](skills/verification-before-completion/SKILL.md) | Use before claiming work is complete or passing — run verification commands and confirm output before asserting success. |
-| [grounded-research](skills/grounded-research/SKILL.md) | Grounded research mode that reduces hallucinations using Anthropic's three recommended techniques: admit uncertainty, extract quotes, cite sources. |
+| [grounded-research](skills/grounded-research/SKILL.md) | Default research mode. Auto-fires whenever the user asks to research, look something up, fact-check, or verify a claim — admit uncertainty, extract quotes, cite sources. |
 | [ios-device-logs](skills/ios-device-logs/SKILL.md) | Debug an iOS app on a physical device — read logs, diagnose connection issues, investigate crashes. |
 | [check-reels-logs](skills/check-reels-logs.md) | Query the `reels_logs` SQLite table in the Stash database via GraphQL when debugging stash-reels. |
 
