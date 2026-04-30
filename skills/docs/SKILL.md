@@ -165,11 +165,15 @@ Run these in order:
 6. **Wire admin.toml if present:**
    ```toml
    [commands.docs]
-   kind = "shell"
+   kind = "npm"
    desc = "serve VitePress docs site with hot reload on http://localhost:NNNN"
-   run  = "npm run docs:dev"
+   run  = "docs:dev"
    ```
-   Add `"docs"` to the `order` array (after `clean`, before utility commands like `icons`/`logs`/`reload`). Then run `~/.admin/init-admin --regenerate . --force-dirty` and verify with `./admin --help`.
+   Use `kind = "npm"` (not `kind = "shell"`) — this is the dedicated renderer that auto-detects npm vs bun (via `bun.lockb`), runs `<pkg> run <script>`, and produces standardized success/error output. The `run` field is just the npm script name, not the full `npm run ...` command.
+
+   Add `"docs"` to the `order` array after `clean`. Note that `logs` (registered automatically via `[logs.*]`) and any logs-aliasing utility commands should NOT appear in `order` — the generator validates strictly and rejects unknown command names. Standard order shape: `["build", "dev", "deploy", "---", "test", "clean", "docs", "icons", "reload"]` (omit any of these the project doesn't have).
+
+   Then run `~/.admin/init-admin --regenerate . --force-dirty` and verify with `./admin --help`.
 7. **Update project `CLAUDE.md`** — add the Documentation section.
 8. **Append to `.gitignore`** if not already present:
    ```
@@ -266,14 +270,20 @@ If you find a project with `config.ts` that's been working (because the project 
 
 ```toml
 [commands.docs]
-kind = "shell"
+kind = "npm"
 desc = "serve VitePress docs site with hot reload on http://localhost:5193"
-run  = "npm run docs:dev"
+run  = "docs:dev"
 ```
 
-Single command. **No sub-targets.** No `docs build`, no `docs preview` — those are noise for local viewing. Add `"docs"` to the `order` array between `clean` and `icons`/`logs`/`reload`. Then `~/.admin/init-admin --regenerate . --force-dirty`.
+`kind = "npm"` is the dedicated renderer — auto-detects npm vs bun, runs `<pkg> run <script>`, produces standardized output. **Don't** use `kind = "shell"` with `run = "npm run docs:dev"` — that bypasses the renderer's lockfile detection and consistent error reporting.
+
+Single command. **No sub-targets.** No `docs build`, no `docs preview` — those are noise for local viewing. Add `"docs"` to the `order` array between `clean` and the utility commands (`icons`, `reload`). Then `~/.admin/init-admin --regenerate . --force-dirty`.
 
 If the project deploys docs (rare), add separate `[commands.docs-build]` / `[commands.docs-deploy]` rather than nesting under `docs`.
+
+### When to use an action instead
+
+Don't, for `docs`. Actions (`[actions.X]`) are reusable building blocks for *multi-step* commands or shared infrastructure between several commands — e.g. an apple archetype's `build-ios` action that gets invoked by both `[commands.build.ios]` and `[commands.dev.ios]` sub-targets. A single npm script invocation has neither shape, so `kind = "npm"` directly on the command is correct. Only reach for an action if you find yourself wanting to call the same docs operation from multiple commands.
 
 ---
 
